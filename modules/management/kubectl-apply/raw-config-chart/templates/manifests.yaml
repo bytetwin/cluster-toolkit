@@ -1,0 +1,5 @@
+{{- range $index, $manifest := .Values.manifests }}
+---
+# Manifest {{ $index }}
+{{ $manifest }}
+{{- end }}

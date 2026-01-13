@@ -103,17 +103,32 @@ module "install_kueue" {
 }
 
 module "configure_kueue" {
-  source        = "./kubectl"
-  source_path   = local.install_kueue ? try(var.kueue.config_path, "") : null
-  template_vars = local.install_kueue ? try(var.kueue.config_template_vars, null) : null
-  depends_on    = [module.install_kueue]
+  source           = "./helm_install"
+  count            = local.install_kueue ? (try(var.kueue.config_path, "") != "" ? 1 : 0) : 0
+  release_name     = "kueue-config"
+  chart_name       = "${path.module}/raw-config-chart"
+  chart_version    = "0.1.0"
+  namespace        = "kueue-system"
+  create_namespace = true
+  wait             = false # Configuration resources (Queues) usually don't need wait
+  
+  values_yaml = [
+    yamlencode({
+      manifests = [
+      for doc in split("\n---", (
+        try(var.kueue.config_path, "") != ""
+        ? (length(regexall("\\.tftpl$", var.kueue.config_path)) > 0
+          ? templatefile(var.kueue.config_path, try(var.kueue.config_template_vars, {}))
+          : file(var.kueue.config_path))
+        : ""
+      )) : trimspace(doc)
+      if length(trimspace(doc)) > 0
+      ]
+    })
+  ]
 
-  server_side_apply = true
-  wait_for_rollout  = true
+  depends_on = [module.install_kueue]
 
-  providers = {
-    kubectl = kubectl
-  }
 }
 
 module "install_jobset" {

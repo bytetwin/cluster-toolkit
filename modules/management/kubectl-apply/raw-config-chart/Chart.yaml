@@ -1,0 +1,6 @@
+apiVersion: v2
+name: raw-config-chart
+description: Generic chart to apply raw manifests
+type: application
+version: 0.1.0
+appVersion: "1.16.0"
